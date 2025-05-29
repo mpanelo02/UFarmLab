@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+
 const scene = new THREE.Scene();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
@@ -175,15 +176,16 @@ loader.load( './FarmLab_Model05.glb', function ( glb ) {
         // child.material.metalness = 0.2;
     }
 
-    if (["Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8", "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"].includes(child.name)) {
-      if (child.isLight) {
-        child.color.set(0xffc0cb); // soft pink
-        child.intensity = 1.5;      // tweak as needed
+    // if (["Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8", "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"].includes(child.name)) {
+    //   if (child.isLight) {
+    //     child.color.set(0xffc0cb); // soft pink
+    //     child.intensity = 1.5;      // tweak as needed
 
-        if ('distance' in child) child.distance = 20; // for PointLight/SpotLight
+    //     if ('distance' in child) child.distance = 20; // for PointLight/SpotLight
         
-      }
-    }
+    //   }
+    // }
+
 
 
     // console.log(child);
@@ -210,7 +212,7 @@ sun.shadow.normalBias = 0.2;
 scene.add( sun );
 
 
-const light = new THREE.AmbientLight( 0x404040, 5 ); // soft white light
+const light = new THREE.AmbientLight( 0x404040, 4.5 ); // soft white light
 scene.add( light );
 
 // const aspect = sizes.width / sizes.height;
@@ -319,6 +321,42 @@ modalExitButton.addEventListener("click", hideModal);
 window.addEventListener("resize", onResize);
 window.addEventListener("click", onClick);
 window.addEventListener( "pointermove", onPointerMove );
+
+// Add this near the top of your script, before the animate function
+async function fetchAranetTemperature() {
+    try {
+        const response = await fetch('https://aranet.cloud/api/v2/sensors/latest', {
+            headers: {
+                'Authorization': 'Bearer k7muwjwzgzmjgx6ahqu29jkjhetq7swe',
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Assuming the API returns an array of sensors and we want the first one
+        if (data.data && data.data.length > 0) {
+            const sensorData = data.data[0];
+            if (sensorData.temperature) {
+                document.getElementById("temperature-value").textContent = sensorData.temperature.toFixed(1);
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching Aranet temperature:', error);
+        // You might want to display an error or fallback value
+        document.getElementById("temperature-value").textContent = "--";
+    }
+}
+
+// Call the function initially and then set up an interval to refresh
+fetchAranetTemperature();
+setInterval(fetchAranetTemperature, 60000); // Update every minute
+
+// The rest of your existing script remains the same...
 
 
 function animate() {
@@ -434,7 +472,7 @@ function updateFanButton(state) {
 
 function updateBulbButton(state) {
   isBulbOn = state === "ON";
-  updateButtonState(bulbToggleButton, isBulbOn, "🌞ON", "🌚OFF");
+  updateButtonState(bulbToggleButton, isBulbOn, "💡ON", "🕯️OFF");
 
   const lightNames = [
     "Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8",
@@ -446,7 +484,7 @@ function updateBulbButton(state) {
     if (lightObj) {
       lightObj.visible = isBulbOn;
       if (lightObj.isLight) {
-        lightObj.color.set("#ff1493"); // 💖 Solid/Deep Pink
+        lightObj.color.set("#ff00dd"); // 💖 Solid/Deep Pink
         lightObj.intensity = 5;
         if ('distance' in lightObj) lightObj.distance = 10;
         
@@ -482,16 +520,13 @@ function updatePumpButton(state) {
   }
 }
 
-// function updateDoorButton(state) {
-//   isDoorOn = state === "ON";
-//   updateButtonState(doorToggleButton, isDoorOn, "🔒 🚪", "🔓 🚪");
-// }
+
 
 client.on("connect", () => {
   console.log("✅ Connected to MQTT broker");
 
   // Subscribe to all topics
-  const topics = ["trial/fan", "trial/bulb", "trial/pump", "trial/door", "trial/temperature", "trial/humidity", "trial/moisture", "trial/waterLevel", "trial/motion"];
+  const topics = ["trial/fan", "trial/bulb", "trial/pump"];
 
   topics.forEach(topic => {
     client.subscribe(topic, err => {
@@ -509,7 +544,7 @@ client.on("message", (topic, message) => {
   const msg = message.toString().trim();
   console.log(`📥 ${topic}: ${msg}`);
 
-  if (["trial/fan", "trial/bulb", "trial/pump", "trial/door"].includes(topic)) {
+  if (["trial/fan", "trial/bulb", "trial/pump"].includes(topic)) {
     if (msg !== "ON" && msg !== "OFF") return;
 
     switch (topic) {
@@ -522,30 +557,45 @@ client.on("message", (topic, message) => {
       case "trial/pump":
         updatePumpButton(msg);
         break;
-      // case "trial/door":
-      //   updateDoorButton(msg);
-      //   break;
+
     }
   }
 
-  // Handle temperature and humidity and moisture messages
-  if (topic === "trial/temperature") {
-    document.getElementById("temperature-value").textContent = msg;
-  } else if (topic === "trial/humidity") {
-    document.getElementById("humidity-value").textContent = msg;
-  } else if (topic === "trial/moisture") {
-    document.getElementById("moisture-value").textContent = Math.floor(((4096-msg)/2495)*100);
-  } else if (topic === "trial/waterLevel") {
-    document.getElementById("waterLevel-value").textContent = msg;
-  } else if (topic === "trial/motion") {
-    document.getElementById("motion-value").textContent = msg;
-    if (msg === "1") {
-      document.getElementById("motion-value").textContent = "-🚶‍♂️-";
-    } else {
-      document.getElementById("motion-value").textContent = "- -";
-    }
+});
+
+const sunToggleButton = document.getElementById('sunToggleButton');
+
+let isBright = true;
+
+
+
+sunToggleButton.addEventListener('click', () => {
+  const containers = [
+  document.getElementById('vantaa-date-container'),
+  document.getElementById('vantaa-time-container'),
+  document.getElementById('temperature-container'),
+  document.getElementById('humidity-container'),
+  document.getElementById('moisture-container'),
+  document.getElementById('water-container')
+];
+
+const newFontColor = isBright ? 'white' : 'black';
+
+containers.forEach(container => {
+  if (container) {
+    container.style.color = newFontColor;
   }
 });
+
+  isBright = !isBright;
+  sunToggleButton.textContent = isBright ? '🌞' : '🌚';
+
+  gsap.to(light, { intensity: isBright ? 4.5 : 1, duration: 1 });
+  gsap.to(sun, { intensity: isBright ? 2 : 1, duration: 1 });
+  renderer.setClearColor(isBright ? 0xeeeeee : 0x111111, 1);
+});
+
+
 
 
 // Button click events to toggle and publish new state
@@ -567,8 +617,3 @@ pumpToggleButton.addEventListener("click", () => {
   updatePumpButton(newState);
 })
 
-// doorToggleButton.addEventListener("click", () => {
-//   const newState = isDoorOn ? "OFF" : "ON";
-//   client.publish("trial/door", newState);
-//   updateDoorButton(newState);
-// })
