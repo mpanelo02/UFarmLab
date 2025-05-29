@@ -168,13 +168,15 @@ loader.load( './FarmLab_Model05.glb', function ( glb ) {
         clockHandLong = child;
     }
 
-
-
     if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        // child.material.metalness = 0.2;
+        
     }
+
+    // if (child.isLight) {
+    //   console.log(`Light found: ${child.name} (Type: ${child.type})`);
+    // }
 
     // if (["Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8", "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"].includes(child.name)) {
     //   if (child.isLight) {
@@ -186,9 +188,31 @@ loader.load( './FarmLab_Model05.glb', function ( glb ) {
     //   }
     // }
 
+        // For the light objects
+    // if (["Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8", 
+    //      "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"].includes(child.name)) {
+    //   if (child.isLight) {
+    //     child.castShadow = true;
+    //     child.shadow.bias = -0.001; // Adjust bias to prevent shadow acne
+    //     child.shadow.mapSize.width = 1024; // Higher resolution shadow map
+    //     child.shadow.mapSize.height = 1024;
+        
+    //     // For SpotLight specifically
+    //     if (child.isSpotLight) {
+    //       child.shadow.camera.near = 0.5;
+    //       child.shadow.camera.far = 500;
+    //       child.shadow.camera.fov = 30;
+    //     }
+        
+    //     // For PointLight (if any are point lights)
+    //     if (child.isPointLight) {
+    //       child.shadow.camera.near = 0.5;
+    //       child.shadow.camera.far = 500;
+    //     }
+    //   }
+    //   child.visible = false; // Keep them hidden by default
+    // }
 
-
-    // console.log(child);
   });
   scene.add( glb.scene );
 
@@ -470,24 +494,78 @@ function updateFanButton(state) {
 }
 
 
+// function updateBulbButton(state) {
+//   isBulbOn = state === "ON";
+//   updateButtonState(bulbToggleButton, isBulbOn, "💡ON", "🕯️OFF");
+
+//   const lightNames = [
+//     "Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8",
+//     "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"
+//   ];
+
+//   lightNames.forEach(name => {
+//     const lightObj = scene.getObjectByName(name);
+//     if (lightObj) {
+//       lightObj.visible = isBulbOn;
+//       if (lightObj.isLight) {
+//         // lightObj.castShadow = true;
+//         lightObj.color.set("#ff00dd"); // 💖 Solid/Deep Pink
+//         lightObj.intensity = 5;
+//         if ('distance' in lightObj) lightObj.distance = 10;
+        
+//       }
+//     }
+//   });
+// }
+
+
 function updateBulbButton(state) {
   isBulbOn = state === "ON";
   updateButtonState(bulbToggleButton, isBulbOn, "💡ON", "🕯️OFF");
 
   const lightNames = [
     "Area1", "Area2", "Area3", "Area4", "Area5", "Area6", "Area7", "Area8",
-    "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8"
+    "Spot1", "Spot2", "Spot3", "Spot4", "Spot5", "Spot6", "Spot7", "Spot8",
   ];
 
   lightNames.forEach(name => {
     const lightObj = scene.getObjectByName(name);
-    if (lightObj) {
+    if (lightObj && lightObj.isLight) {
+      console.log(`Configuring ${name} (Type: ${lightObj.type})`);
+      
       lightObj.visible = isBulbOn;
-      if (lightObj.isLight) {
-        lightObj.color.set("#ff00dd"); // 💖 Solid/Deep Pink
-        lightObj.intensity = 5;
-        if ('distance' in lightObj) lightObj.distance = 10;
+      lightObj.intensity = isBulbOn ? 10 : 0; // Start with higher intensity
+
+      if (name === "Spot7" || name === "Spot8") {
+        lightObj.castShadow = false; // Disable shadows for these problematic lights
+      } 
+      
+      else if (isBulbOn) {
+        // Only enable shadows if the light is ON
+        lightObj.castShadow = true;
         
+        // Adjust shadow camera for SpotLight/DirectionalLight
+        if (lightObj.isSpotLight || lightObj.isDirectionalLight) {
+          lightObj.shadow.camera.near = 0.1;
+          lightObj.shadow.camera.far = 50;
+          
+          // For SpotLight only
+          if (lightObj.isSpotLight) {
+            lightObj.shadow.camera.fov = 60;
+          }
+          
+          // For DirectionalLight only
+          if (lightObj.isDirectionalLight) {
+            lightObj.shadow.camera.left = -20;
+            lightObj.shadow.camera.right = 20;
+            lightObj.shadow.camera.top = 20;
+            lightObj.shadow.camera.bottom = -20;
+          }
+        }
+        
+        lightObj.shadow.mapSize.width = 512; // Lower resolution for testing
+        lightObj.shadow.mapSize.height = 512;
+        lightObj.shadow.bias = -0.001; // Adjust if needed
       }
     }
   });
