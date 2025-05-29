@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playwrite+DK+Loopet:wght@100..400&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playwrite+DK+Loopet:wght@100..400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
-<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
 </head>
 <body>
@@ -41,6 +41,38 @@
         </div>
     </div>
 
+<script>
+    async function getData() {
+      try {
+        const response = await fetch("http://localhost:3000/api/data");
+        const data = await response.json();
+        
+        // Extract temperature and humidity from the readings array
+        const temperatureReading = data.readings.find(r => r.metric === "1");
+        const humidityReading = data.readings.find(r => r.metric === "2");
+        
+        if (temperatureReading) {
+          // Round to 1 decimal place
+          const roundedTemp = parseFloat(temperatureReading.value).toFixed(1);
+          document.getElementById('temperature').textContent = roundedTemp;
+        }
+        if (humidityReading) {
+          // Round to 1 decimal place
+          const roundedHumidity = parseFloat(humidityReading.value).toFixed(1);
+          document.getElementById('humidity').textContent = roundedHumidity;
+        }
+        
+        console.log('Temperature:', temperatureReading?.value, 'Humidity:', humidityReading?.value);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+
+    // Call immediately and then every 30 seconds
+    getData();
+    setInterval(getData, 30000); // 30000 ms = 30 seconds
+  </script>
+
     <script type="importmap">
         {
           "imports": {
@@ -48,8 +80,10 @@
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.149.0/examples/jsm/"
           }
         }
+        
         </script>
         <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
+        
     <script type="module" src="./main.js"></script>
         
     <!-- Place these first so the elements are available -->
@@ -66,12 +100,12 @@
 
         <!-- Temperature -->
         <div id="temperature-container" style="position: fixed; top: 80px; left: 30px; font-size: 20px; color: black; font-weight: bold; z-index: 9999; font-family: Arial, sans-serif;">
-            🌡️T: <span id="temperature-value">--</span> °C
+            🌡️T: <span id="temperature">--</span> °C
         </div>
   
         <!-- Humidity -->
         <div id="humidity-container" style="position: fixed; top: 110px; left: 30px; font-size: 20px; color: black; font-weight: bold; z-index: 9999; font-family: Arial, sans-serif;">
-            🫧H: <span id="humidity-value">--</span> %
+            🫧H: <span id="humidity">--</span> %
         </div>
 
         <!-- Moisture -->
@@ -85,9 +119,9 @@
         </div>
 
         <!-- Motion Detect -->
-        <div id="motion-container" style="position: fixed; top: 200px; left: 60px; font-size: 20px; color: black; font-weight: bold; z-index: 9999; font-family: Arial, sans-serif;">
+        <!-- <div id="motion-container" style="position: fixed; top: 200px; left: 60px; font-size: 20px; color: black; font-weight: bold; z-index: 9999; font-family: Arial, sans-serif;">
             <span id="motion-value">- -</span>
-        </div>
+        </div> -->
 
 
         <button id="fanToggleButton" class="fanPin">🥵OFF</button>
