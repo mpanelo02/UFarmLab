@@ -44,7 +44,7 @@
 <script>
     async function getData() {
       try {
-        const response = await fetch("http://10.72.129.0:3000/api/data");
+        const response = await fetch("http://localhost:3000/api/data");
         const data = await response.json();
         
         // Extract temperature and humidity from the readings array
